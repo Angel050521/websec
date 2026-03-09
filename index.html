@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSec Audit — Analizador de Seguridad Web</title>
+  <meta name="description"
+    content="Escanea cualquier sitio web y obtén un informe completo de vulnerabilidades, cabeceras HTTP y recomendaciones de seguridad.">
+
+
+  <link rel="stylesheet" href="fonts.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
+    crossorigin="anonymous"></script>
+
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+
+  <canvas id="network-bg"></canvas>
+  <div class="network-overlay"></div>
+
+
+  <div class="topbar">
+    <div class="topbar-logo">WEB<span>SEC</span></div>
+    <div style="display: flex; gap: 20px; align-items: center;">
+      <a href="#" class="topbar-link" onclick="showFAQ(); return false;">¿CÓMO FUNCIONA?</a>
+      <a href="https://github.com/Angel050521" target="_blank" rel="noopener noreferrer" class="topbar-link">
+        <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+          </path>
+        </svg>
+        GitHub
+      </a>
+      <div class="topbar-version">AUDIT TOOL v5.0</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <section class="hero" id="hero-section">
+      <h1>WEB<span>SEC</span><br>AUDIT</h1>
+      <p class="subtitle">Escanea cualquier sitio web y obtén un informe completo de vulnerabilidades, cabeceras HTTP y
+        recomendaciones.</p>
+
+      <div class="input-group">
+        <input type="text" id="url-input" placeholder="https://tusitio.com" autocomplete="off" spellcheck="false" />
+        <button id="scan-btn" onclick="startScan()">Escanear</button>
+      </div>
+      <div style="margin-top: 16px;">
+        <button id="local-scan-btn" onclick="startLocalScan()" class="scan-again">Analizar Proyecto Local</button>
+      </div>
+      <p class="hint">Ejemplo: https://ejemplo.com · El análisis tarda mas o menos 1 minuto debido a los batch de
+        peticiones y al rate limit</p>
+    </section>
+
+    <section id="progress-section">
+      <p class="progress-label" id="progress-label">Iniciando escaneo...</p>
+      <div class="progress-track">
+        <div class="progress-fill" id="prog-fill"></div>
+      </div>
+      <div class="progress-log" id="progress-log"></div>
+    </section>
+
+    <section id="report-section">
+
+      <div class="report-topbar">
+        <div>
+          <div class="report-url">Sitio analizado: <strong id="r-url"></strong></div>
+          <div class="report-ts" id="r-ts"></div>
+        </div>
+        <div class="report-actions">
+          <button class="scan-again" onclick="resetScan()">← Nuevo análisis</button>
+          <button class="export-btn" onclick="exportPDF()">⬇ Exportar PDF</button>
+        </div>
+      </div>
+
+      <div class="score-panel" id="score-panel">
+        <div class="semaphore">
+          <div class="sem-light sem-red" id="sem-red"></div>
+          <div class="sem-light sem-yellow" id="sem-yellow"></div>
+          <div class="sem-light sem-green" id="sem-green"></div>
+        </div>
+        <div class="score-details">
+          <div class="score-number" id="score-num">--</div>
+          <div class="score-label" id="score-lbl">Calculando...</div>
+          <div class="score-desc" id="score-desc"></div>
+        </div>
+        <div class="score-breakdown" id="score-pills"></div>
+      </div>
+
+      <div class="sec-hdr">Reconocimiento</div>
+      <div class="recon-grid" id="recon-grid"></div>
+
+      <div class="sec-hdr">Cabeceras HTTP detectadas</div>
+      <div class="recon-grid" id="headers-grid"></div>
+
+      <div class="sec-hdr">Hallazgos de seguridad</div>
+      <div class="findings" id="findings-list"></div>
+
+      <div class="sec-hdr">Checklist de correcciones</div>
+      <div class="progress-checklist">
+        <div class="checklist-stats">
+          <span id="cl-done">0</span>/<span id="cl-total">0</span> correcciones completadas
+          <span class="checklist-hint">Haz clic para marcar como hecho</span>
+        </div>
+        <div class="checklist-track">
+          <div class="checklist-fill" id="cl-fill"></div>
+        </div>
+      </div>
+      <div class="checklist" id="checklist"></div>
+
+      <!-- HISTORIAL -->
+      <div id="history-section" style="display:none;"></div>
+
+      <div class="disclaimer">
+        <strong>⚠ Aviso legal:</strong> Esta herramienta realiza análisis de seguridad activo enviando payloads
+        <strong>seguros y no destructivos</strong> (fuzzing básico para XSS, SQLi, SSRF, LFI, Redirecciones). No ejecuta
+        exploits ni altera datos. Úsala exclusivamente en sitios que te pertenezcan o para los que tengas autorización
+        explícita. El escaneo no autorizado puede activar alarmas (WAF/IDS) o ser considerado ilegal.
+      </div>
+
+      <div class="footer-credits">
+        Desarrollado por <a href="https://github.com/Angel050521" target="_blank"
+          rel="noopener noreferrer">Angel050521</a>
+      </div>
+
+    </section>
+
+    <section id="faq-section" style="display:none; padding: 100px 24px; max-width: 900px; margin: 0 auto;">
+      <div class="logo-badge" style="margin-bottom: 20px;">
+        <div class="dot"></div> SOBRE MI PROYECTO
+      </div>
+      <h2 style="font-size: 3rem; font-weight: 800; margin-bottom: 40px; letter-spacing: -1px;">¿Cómo funciona WebSec
+        Audit?</h2>
+
+      <div class="faq-container">
+        <div class="faq-item">
+          <h3>¿Por qué creé esta herramienta?</h3>
+          <p>Desarrollé esta plataforma como una solución "all-in-one" para ciberseguridad. Mi objetivo fue combinar el
+            análisis dinámico (DAST) con el análisis estático (SAST) local en una interfaz moderna y rápida. Quise crear
+            algo que identifique vectores de ataque de forma sencilla para cualquier desarrollador.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>¿En qué me baso para el puntaje?</h3>
+          <p>He diseñado un sistema <strong>Deductivo de Salud</strong> inspirado en el estándar industrial CVSS. El
+            sitio comienza con 100 puntos y voy restando según la gravedad de lo que encuentro:</p>
+          <ul>
+            <li><strong>Crítico (-15):</strong> Fallos que comprometen todo (SQLi, Secretos, .env).</li>
+            <li><strong>Alto (-8):</strong> Riesgos severos (WordPress vulnerable, sin HSTS).</li>
+          </ul>
+        </div>
+
+        <div class="faq-item">
+          <h3>Mi sistema de detección de Puertos</h3>
+          <p>Para lograr precisión, implementé un <strong>Proxy de Bajo Nivel</strong> en PHP que me permite realizar
+            conexiones TCP reales. Así puedo detectar puertos abiertos como el 3306 (DB) o 21 (FTP) y leer sus "banners"
+            para saber exactamente qué software estás corriendo.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>¿Cómo identifico las Cabeceras?</h3>
+          <p>Analizo las respuestas HTTP de tu servidor buscando escudos de protección. Me enfoco en:
+            <br>• <strong>CSP:</strong> Para que nadie inyecte scripts (XSS).
+            <br>• <strong>HSTS:</strong> Para obligar el uso de HTTPS.
+            <br>• <strong>X-Frame-Options:</strong> Para evitar el secuestro de clics (Clickjacking).
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Apoya mi trabajo en GitHub</h3>
+          <p>Si te gusta mi herramienta, puedes ver el código fuente, reportar errores o descargar el repositorio para
+            correrlo en tu propio servidor.</p>
+          <a href="https://github.com/Angel050521/websec" target="_blank" class="export-btn"
+            style="text-decoration: none; width: fit-content; margin-top: 15px;">
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+              </path>
+            </svg>
+            Revisa el repo en GitHub
+          </a>
+        </div>
+      </div>
+
+      <button onclick="hideFAQ()" class="scan-again" style="margin-top: 40px;">← Volver al panel principal</button>
+    </section>
+
+  </div>
+
+
+  <script src="network-background.js"></script>
+
+
+  <script src="app.js"></script>
+  <script src="sast.js"></script>
+
+  <script>
+    function showFAQ() {
+      document.getElementById('hero-section').style.display = 'none';
+      document.getElementById('report-section').style.display = 'none';
+      document.getElementById('progress-section').style.display = 'none';
+      document.getElementById('faq-section').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+    function hideFAQ() {
+      document.getElementById('faq-section').style.display = 'none';
+      document.getElementById('hero-section').style.display = 'flex';
+      window.scrollTo(0, 0);
+    }
+  </script>
+
+</body>
+
+</html>

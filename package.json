@@ -1,0 +1,46 @@
+{
+  "name": "websec",
+  "version": "1.0.0",
+  "description": "WebSec Audit — Analizador de Seguridad Web",
+  "main": "app.js",
+  "scripts": {
+    "test": "node node_modules/jest/bin/jest.js --verbose",
+    "test:coverage": "node node_modules/jest/bin/jest.js --verbose --coverage",
+    "test:watch": "node node_modules/jest/bin/jest.js --watch"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"],
+    "collectCoverageFrom": [
+      "app.testable.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "text-summary", "lcov"]
+  },
+  "keywords": [
+    "security",
+    "web-security",
+    "vulnerability-scanner",
+    "security-audit",
+    "penetration-testing",
+    "owasp",
+    "security-headers",
+    "ai-integration",
+    "chatgpt",
+    "security-tools"
+  ],
+  "author": "Angel050521",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Angel050521/websec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Angel050521/websec/issues"
+  },
+  "homepage": "https://github.com/Angel050521/websec#readme",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
